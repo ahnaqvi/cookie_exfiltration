@@ -1,0 +1,303 @@
+{
+  "name": "null",
+  "children": [
+    {
+      "name": "Cookie: H_PS_PSSID",
+      "parent": "null",
+      "children": [
+        {
+          "name": "Operation: read",
+          "parent": "Operation: H_PS_PSSID",
+          "children": [
+            {
+              "name": "Operation: read",
+              "parent": "Operation: read",
+              "children": [
+                {
+                  "name": "Operation: read",
+                  "parent": "Operation: read",
+                  "children": [
+                    {
+                      "name": "Operation: read",
+                      "parent": "Operation: read",
+                      "children": [
+                        {
+                          "name": "Operation: read",
+                          "parent": "Operation: read",
+                          "children": [
+                            {
+                              "name": "Operation: read",
+                              "parent": "Operation: read",
+                              "children": [
+                                {
+                                  "name": "Operation: read",
+                                  "parent": "Operation: read",
+                                  "children": [
+                                    {
+                                      "name": "Operation: read",
+                                      "parent": "Operation: read",
+                                      "children": [
+                                        {
+                                          "name": "Operation: read",
+                                          "parent": "Operation: read",
+                                          "children": [
+                                            {
+                                              "name": "Operation: read",
+                                              "parent": "Operation: read",
+                                              "children": [
+                                                {
+                                                  "name": "Operation: read",
+                                                  "parent": "Operation: read",
+                                                  "children": [
+                                                    {
+                                                      "name": "Operation: read",
+                                                      "parent": "Operation: read",
+                                                      "children": [
+                                                        {
+                                                          "name": "Operation: read",
+                                                          "parent": "Operation: read",
+                                                          "children": [
+                                                            {
+                                                              "name": "Operation: read",
+                                                              "parent": "Operation: read",
+                                                              "children": [
+                                                                {
+                                                                  "name": "Operation: read",
+                                                                  "parent": "Operation: read",
+                                                                  "children": [
+                                                                    {
+                                                                      "name": "Operation: read",
+                                                                      "parent": "Operation: read",
+                                                                      "children": [
+                                                                        {
+                                                                          "name": "Operation: read",
+                                                                          "parent": "Operation: read",
+                                                                          "children": [
+                                                                            {
+                                                                              "name": "Operation: read",
+                                                                              "parent": "Operation: read",
+                                                                              "children": [
+                                                                                {
+                                                                                  "name": "Operation: read",
+                                                                                  "parent": "Operation: read",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "name": "Operation: read",
+                                                                                      "parent": "Operation: read",
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "name": "Operation: read",
+                                                                                          "parent": "Operation: read",
+                                                                                          "children": [
+                                                                                            {
+                                                                                              "name": "Operation: read",
+                                                                                              "parent": "Operation: read",
+                                                                                              "children": [
+                                                                                                {
+                                                                                                  "name": "Operation: read",
+                                                                                                  "parent": "Operation: read",
+                                                                                                  "children": [
+                                                                                                    {
+                                                                                                      "name": "Operation: read",
+                                                                                                      "parent": "Operation: read",
+                                                                                                      "children": [
+                                                                                                        {
+                                                                                                          "name": "Operation: read",
+                                                                                                          "parent": "Operation: read",
+                                                                                                          "children": [
+                                                                                                            {
+                                                                                                              "name": "Operation: read",
+                                                                                                              "parent": "Operation: read",
+                                                                                                              "children": [
+                                                                                                                {
+                                                                                                                  "name": "Operation: read",
+                                                                                                                  "parent": "Operation: read",
+                                                                                                                  "children": [
+                                                                                                                    {
+                                                                                                                      "name": "Operation: read",
+                                                                                                                      "parent": "Operation: read",
+                                                                                                                      "children": [
+                                                                                                                        {
+                                                                                                                          "name": "Operation: read",
+                                                                                                                          "parent": "Operation: read",
+                                                                                                                          "children": [
+                                                                                                                            {
+                                                                                                                              "name": "Operation: read",
+                                                                                                                              "parent": "Operation: read",
+                                                                                                                              "children": [
+                                                                                                                                {
+                                                                                                                                  "name": "Operation: read",
+                                                                                                                                  "parent": "Operation: read",
+                                                                                                                                  "children": [
+                                                                                                                                    {
+                                                                                                                                      "name": "Operation: read",
+                                                                                                                                      "parent": "Operation: read",
+                                                                                                                                      "children": []
+                                                                                                                                    }
+                                                                                                                                  ]
+                                                                                                                                }
+                                                                                                                              ]
+                                                                                                                            }
+                                                                                                                          ]
+                                                                                                                        }
+                                                                                                                      ]
+                                                                                                                    }
+                                                                                                                  ]
+                                                                                                                }
+                                                                                                              ]
+                                                                                                            }
+                                                                                                          ]
+                                                                                                        }
+                                                                                                      ]
+                                                                                                    }
+                                                                                                  ]
+                                                                                                }
+                                                                                              ]
+                                                                                            }
+                                                                                          ]
+                                                                                        }
+                                                                                      ]
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              ]
+                                                                            }
+                                                                          ]
+                                                                        }
+                                                                      ]
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cookie: BD_UPN",
+      "parent": "null",
+      "children": [
+        {
+          "name": "Operation: add",
+          "parent": "Operation: BD_UPN",
+          "children": [
+            {
+              "name": "Operation: read",
+              "parent": "Operation: add",
+              "children": [
+                {
+                  "name": "Operation: read",
+                  "parent": "Operation: read",
+                  "children": [
+                    {
+                      "name": "Operation: read",
+                      "parent": "Operation: read",
+                      "children": [
+                        {
+                          "name": "Operation: read",
+                          "parent": "Operation: read",
+                          "children": [
+                            {
+                              "name": "Operation: read",
+                              "parent": "Operation: read",
+                              "children": [
+                                {
+                                  "name": "Operation: read",
+                                  "parent": "Operation: read",
+                                  "children": [
+                                    {
+                                      "name": "Operation: read",
+                                      "parent": "Operation: read",
+                                      "children": [
+                                        {
+                                          "name": "Operation: read",
+                                          "parent": "Operation: read",
+                                          "children": [
+                                            {
+                                              "name": "Operation: read",
+                                              "parent": "Operation: read",
+                                              "children": [
+                                                {
+                                                  "name": "Operation: read",
+                                                  "parent": "Operation: read",
+                                                  "children": [
+                                                    {
+                                                      "name": "Operation: read",
+                                                      "parent": "Operation: read",
+                                                      "children": [
+                                                        {
+                                                          "name": "Operation: read",
+                                                          "parent": "Operation: read",
+                                                          "children": [
+                                                            {
+                                                              "name": "Operation: read",
+                                                              "parent": "Operation: read",
+                                                              "children": [
+                                                                {
+                                                                  "name": "Operation: read",
+                                                                  "parent": "Operation: read",
+                                                                  "children": [
+                                                                    {
+                                                                      "name": "Operation: read",
+                                                                      "parent": "Operation: read",
+                                                                      "children": []
+                                                                    }
+                                                                  ]
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
