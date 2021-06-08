@@ -100,7 +100,7 @@ class Operation:
         # TODO: What is change_cause and record_type in js_cookie table
         self.operation = operation # add, delete, modfify, read 
         # actor is the current site doing the operation
-        self.actor = removeProtocolFromUrl(removePathFromUrl(actor))
+        self.actor = actor # removePath(removeProtocol(actor))
         # timestamp of the operation
         self.timestamp = timestamp
         # cookieAccessMethod is http or javascript
@@ -129,7 +129,7 @@ class Operation:
 
 #%%
 def loadDb(dbLocation = "/Users/ahnaqvi/Documents/research/\
-zubair research/crawl-data.sqlite"):
+zubair research/OpenWPM/datadir/crawl-data.sqlite"):
     '''Load db into memory'''
     persistentDb = sqlite3.connect(dbLocation)
     inMemoryDb = sqlite3.connect(':memory:')
@@ -142,7 +142,7 @@ def removePathFromUrl(url):
     index = reversed_url.find("/")
     if index == -1:
         return url
-    return reversed_url[index + 1:][::-1]
+    return removePathFromUrl(reversed_url[index + 1:][::-1])
 
 def removeProtocolFromUrl(url):
     if url.startswith("https://"):
@@ -205,12 +205,17 @@ def makeJavascriptCookieOperation(actor, value, initial_operation, initial_times
                 if "samesite" in i.lower(): 
                     sameSiteStatus = i.split("=",1)[1]
                 if "expires" in i:
-                    expirationDate = datetime.strptime\
-                    (i.split("=",1)[1][:-4], "%a, %d %b %Y %H:%M:%S") 
-                    # all times are utc
+                    try:
+                        expirationDate = datetime.strptime\
+                        (i.split("=",1)[1][:-4], "%a, %d %b %Y %H:%M:%S") 
+                        # all times are utc
+                    except:
+                        expirationDate = datetime.strptime\
+                        (i.split("=",1)[1][:-4], "%a, %d-%b-%Y %H:%M:%S")
     else:
         if initial_operation == "get":
             operation = "read"
+            
         else:
             operation = "NA (" + initial_operation + ")"
         cookieValue = "tbd" # value is same as previous operation 
@@ -252,8 +257,15 @@ def makeHttpRequestCookieOperation(actor, headers, initial_timestamp, cookie):
         
 def makeHttpResponseCookieOperation(actor, headers, initial_timestamp, cookie):
     # there can be multiple set-cookie headers
-    cookieHeaderValues = [ header[1] for header in json.loads(headers) if header[0].lower() == "set-cookie" ]
+    print("Len")
+    cookieHeaderValues = [ header[1] for header in json.loads(headers) if "set-cookie" in header[0].lower()]
+    
+    print(len(cookieHeaderValues))
+    print("")
+    
     for cookieHeaderValue in cookieHeaderValues:
+        print(cookieHeaderValue) # <--------
+        print("")
         if (not cookieHeaderValue) or (cookie.name not in cookieHeaderValue):
             continue
         else:
@@ -261,9 +273,13 @@ def makeHttpResponseCookieOperation(actor, headers, initial_timestamp, cookie):
                 if cookie.name in i:
                     cookieValue = i.split("=")[1]
                 if "expire" in i.lower():
-                    expirationDate = datetime.strptime\
-                    (i.split("=",1)[1][:-4], "%a, %d %b %Y %H:%M:%S") 
-                    # all times are utc
+                    try:
+                        expirationDate = datetime.strptime\
+                        (i.split("=",1)[1][:-4], "%a, %d %b %Y %H:%M:%S") 
+                        # all times are utc
+                    except ValueError:
+                        expirationDate = datetime.strptime\
+                        (i.split("=",1)[1][:-4], "%a, %d-%b-%Y %H:%M:%S")
                 if "max-age" in i.lower():
                     expirationDate = datetime.utcnow() + timedelta(seconds=int(i.split("=")[1]))
                 if "domain=" in i.lower():
@@ -277,15 +293,15 @@ def makeHttpResponseCookieOperation(actor, headers, initial_timestamp, cookie):
                     httpOnly = True
                 if "samesite" in i.lower().split("="):
                     sameSiteStatus = i.split("=")[1]
-            if not cookieValue:
+            if not 'cookieValue' in locals():
                 cookieValue = ""
-            if not expirationDate:
+            if not 'expirationDate' in locals():
                 expirationDate = (datetime(2038, 1, 19, 0, 0) - datetime.utcfromtimestamp(0)).total_seconds()
-            if not httpOnly:
+            if not 'httpOnly' in locals():
                 httpOnly = False
-            if not hostOnly:
+            if not 'hostOnly' in locals():
                 hostOnly = True
-            if not sameSiteStatus:
+            if not 'sameSiteStatus' in locals():
                 sameSiteStatus = "lax"
             cookieAccessMethod = "httpResponse"
             timestamp = (datetime.fromisoformat(initial_timestamp[:-1]) - datetime.utcfromtimestamp(0)).total_seconds()
@@ -297,8 +313,8 @@ def makeHttpResponseCookieOperation(actor, headers, initial_timestamp, cookie):
     
 
 #%% make all tables pandas dataframes
-dbLocation = dbLocation = "/Users/ahnaqvi/Documents/research/\
-zubair research/crawl-data.sqlite"
+dbLocation = "/Users/ahnaqvi/Documents/research/\
+zubair research/OpenWPM/datadir/crawl-data.sqlite"
 # db = loadDb()
 db = sqlite3.connect(dbLocation)
 cur = db.cursor()
@@ -313,7 +329,7 @@ httpResponsesTable = table2frame(cur, "HTTP_RESPONSES")
 httpResponsesTable["url"] = httpResponsesTable["url"].apply(removeProtocolFromUrl)
 #%%
 
-cookies = makeCookies(db)[33:35] #Shrink down list for testing. 
+cookies = makeCookies(db)[:1] #Shrink down list for testing. 
 # TODO: Remove later
 
 for cookie in cookies:
@@ -349,9 +365,9 @@ for cookie in cookies:
     filteredResultsHttpResponses = httpResponsesTable.merge(httpRequestsTable, how="left", on="visit_id")
     filteredResultsHttpResponses = filteredResultsHttpResponses[(filteredResultsHttpResponses.browser_id_x == cookie.browserId) & ( (filteredResultsHttpResponses.referrer == cookie.host) | (filteredResultsHttpResponses.referrer == filteredResultsHttpResponses.url_x) )]
     
-    filteredResultsHttpResponses = filteredResultsHttpResponses[["url_y", "headers_y", "time_stamp_y"]]
+    filteredResultsHttpResponses = filteredResultsHttpResponses[["url_y", "headers_x", "time_stamp_x"]]
     filteredResultsHttpResponses = filteredResultsHttpResponses.drop_duplicates()
-    filteredResultsHttpResponses = filteredResultsHttpResponses.sort_values("time_stamp_y")
+    filteredResultsHttpResponses = filteredResultsHttpResponses.sort_values("time_stamp_x")
     if filteredResultsHttpResponses.size > 0:
         print("httpRepsonses")
         print(filteredResultsHttpResponses.size)
@@ -361,7 +377,7 @@ for cookie in cookies:
         makeJavascriptCookieOperation(row[0], row[1], row[2], row[3], cookie)
     for index, row in filteredResultsHttpRequests.iterrows():
         makeHttpRequestCookieOperation(row[0], row[1], row[2], cookie)
-    for index, row in filteredResultsHttpRequests.iterrows():
+    for index, row in filteredResultsHttpResponses.iterrows():
         makeHttpResponseCookieOperation(row[0], row[1], row[2], cookie)
     cookie.sortOperations()
 
