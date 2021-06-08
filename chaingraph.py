@@ -47,8 +47,8 @@ for cookie in cookieOps:
     # dat = {}
     opsList = []
     for i in reversed(range(1,len(cookie))):
-        opsList = [{"name": "Operation: " + str(cookie[i]),
-                      "parent": "Operation: " + str(cookie[i-1]), 
+        opsList = [{"name": str(cookie[i]),
+                      "parent": str(cookie[i-1]), 
                       "children": opsList
                     }]
         
