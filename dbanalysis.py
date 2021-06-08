@@ -424,6 +424,6 @@ for cookie in cookies:
 endTime = time.perf_counter()
 m, s = divmod(endTime - startTime, 60)
 print("FINISHED! PICKLING NOW...")
-with open('pickled_data', 'w') as f:
+with open('pickled_data', 'wb') as f:
     pickle.dump(cookies,f)
 print(F"{m} minutes and {s} seconds \n")
