@@ -2,16 +2,16 @@ import sqlite3
 import pandas as pd
 from datetime import datetime
 from datetime import timedelta
-import sys
 import time
 import json
 import copy
+import pickle
 
-# TODO: WHAT TO DO FOR EMPTY ACTORS?
 
 #TODO: check if each operation exfils cookie in post body or request headers. 
 # Exfil requires last change was not made by current actor
 #TODO: check if previous actor's cookie is being overwritten or stolen/exfilled
+#TODO: check if exfil is hashed/encrypted? Might be hard if nonce based
 
 
 # for each cookie, build a chain of operations ordered by timestamp
@@ -25,7 +25,7 @@ import copy
 
 startTime = time.perf_counter()
 
-class Cookie: # TODO: have an exfil actors property
+class Cookie: 
     def __init__(self, browserId, name, host):
         self.browserId = browserId
         self.name = name
@@ -33,6 +33,7 @@ class Cookie: # TODO: have an exfil actors property
         self.host = host
         # list of operations associated with each cookie
         self.operations = []
+        self.exfilOperations = [] # stores index number of suspected exfil operations
     def addOperation(self, newOperation): 
         self.operations.append(newOperation)
     def swap(self, op):
@@ -88,7 +89,15 @@ class Cookie: # TODO: have an exfil actors property
                             op.operation = "read"
                         else:
                             op.operation = "modify"
-                        
+    
+    def identifyExfilOperations(self):
+        if len(self.operations) < 2:
+            return
+        for i in range(1, len(self.operations)): # can use pairwise, less readble though
+            actor = removePathFromUrl(removeProtocolFromUrl(self.operations[i].actor))
+            previous_actor = removePathFromUrl(removeProtocolFromUrl(self.operations[i-1].actor))
+            if previous_actor != actor:
+                self.exfilOperations.append(i)
             
             
 class Operation:
@@ -129,7 +138,7 @@ class Operation:
 
 #%%
 def loadDb(dbLocation = "/Users/ahnaqvi/Documents/research/\
-zubair research/OpenWPM/datadir/crawl-data.sqlite"):
+zubair research/OpenWPM/datadir/crawl-data_mini.sqlite"):
     '''Load db into memory'''
     persistentDb = sqlite3.connect(dbLocation)
     inMemoryDb = sqlite3.connect(':memory:')
@@ -166,8 +175,11 @@ def makeCookies(db):
     cookiesRaw = list(cookiesRaw)
     cookies = [] 
     for cookieRaw in cookiesRaw:
+        # print(cookieRaw)
+        # print("")
         cookie = Cookie(browserId=cookieRaw[0], name=cookieRaw[1], 
-        host=removeProtocolFromUrl(cookieRaw[2]))
+        host=removePathFromUrl(removeProtocolFromUrl(cookieRaw[2])))
+        
         cookies.append(cookie)
     return cookies
 
@@ -179,8 +191,7 @@ def table2frame(cur, tableName):
     return results
    
  
-def makeJavascriptCookieOperation(actor, value, initial_operation, initial_timestamp, cookie):    
-    # TODO: change actor, using callstack, to actual script url
+def makeJavascriptCookieOperation(actor, value, initial_operation, initial_timestamp, call_stack, cookie):    
     if cookie.name not in value: # this cookie was not affected
         return None
     # break value into furhter cookie values, expiry and all other attibutes of operation
@@ -191,7 +202,7 @@ def makeJavascriptCookieOperation(actor, value, initial_operation, initial_times
         httpOnly = False # javascript cannot set httpOnly header
         hostOnly = True
         sameSiteStatus = "no_restriction"
-        expirationDate = "session"
+        expirationDate = "session" # ?
         operation = "tbd"
         expirationDate = (datetime(2038, 1, 19, 0, 0) - datetime.utcfromtimestamp(0)).total_seconds() 
         # default expiry date is 2038, infinity essentially     
@@ -208,10 +219,20 @@ def makeJavascriptCookieOperation(actor, value, initial_operation, initial_times
                     try:
                         expirationDate = datetime.strptime\
                         (i.split("=",1)[1][:-4], "%a, %d %b %Y %H:%M:%S") 
+                        expirationDate = (expirationDate - datetime.utcfromtimestamp(0)).total_seconds()
                         # all times are utc
+
                     except:
-                        expirationDate = datetime.strptime\
-                        (i.split("=",1)[1][:-4], "%a, %d-%b-%Y %H:%M:%S")
+                        try:
+                            expirationDate = datetime.strptime\
+                            (i.split("=",1)[1][:(i.split("=",1)[1]).find('GMT')-1], "%a, %d-%b-%Y %H:%M:%S")
+                            expirationDate = (expirationDate - datetime.utcfromtimestamp(0)).total_seconds()
+                        except:
+                            expirationDate = datetime.strptime\
+                            (i.split("=",1)[1][:(i.split("=",1)[1]).find('GMT')-1], "%a, %d-%b-%y %H:%M:%S")
+                            expirationDate = (expirationDate - datetime.utcfromtimestamp(0)).total_seconds()
+                            
+
     else:
         if initial_operation == "get":
             operation = "read"
@@ -225,6 +246,17 @@ def makeJavascriptCookieOperation(actor, value, initial_operation, initial_times
         sameSiteStatus = "tbd"
         hostOnly = "tbd"
     
+    if actor == "":
+        if call_stack == "":
+            actor = "Unknown"
+        else:
+            start_index = call_stack.find("@")
+            end_index = call_stack.find("\n")
+            if start_index == -1 or end_index == -1:
+                actor = "Unknown"
+            else:
+                actor = call_stack[start_index+1 : end_index] # use the lcallstack to determine calling script if unavaialbe otehrwise
+                
     newOperation = Operation(operation, actor, timestamp, cookieAccessMethod, \
                               cookieValue, expirationDate, httpOnly, sameSiteStatus, hostOnly)
     cookie.operations.append(newOperation)
@@ -242,7 +274,7 @@ def makeHttpRequestCookieOperation(actor, headers, initial_timestamp, cookie):
     # cookieHeaderValue[0] contains the string of all cookies such as "a=23;b=2;d=2"
     for i in cookieHeaderValue[0].split(";"):
         if cookie.name in i:
-            cookieValue = i.split("=")[1]
+            cookieValue = i.split("=", 1)[1]
             break
 
     expirationDate = "tbd"
@@ -257,31 +289,40 @@ def makeHttpRequestCookieOperation(actor, headers, initial_timestamp, cookie):
         
 def makeHttpResponseCookieOperation(actor, headers, initial_timestamp, cookie):
     # there can be multiple set-cookie headers
-    print("Len")
+    # print("Len response headers: ")
     cookieHeaderValues = [ header[1] for header in json.loads(headers) if "set-cookie" in header[0].lower()]
-    
-    print(len(cookieHeaderValues))
-    print("")
-    
+    # if len(cookieHeaderValues) > 0:
+        # print(len(cookieHeaderValues))
+        # print("")
     for cookieHeaderValue in cookieHeaderValues:
-        print(cookieHeaderValue) # <--------
-        print("")
         if (not cookieHeaderValue) or (cookie.name not in cookieHeaderValue):
             continue
         else:
             for i in cookieHeaderValue.split(";"):
-                if cookie.name in i:
-                    cookieValue = i.split("=")[1]
+                if cookie.name in i.split("=", 1):
+                    # print(i)
+                    cookieValue = i.split("=", 1)[1]
                 if "expire" in i.lower():
                     try:
                         expirationDate = datetime.strptime\
                         (i.split("=",1)[1][:-4], "%a, %d %b %Y %H:%M:%S") 
                         # all times are utc
+                        expirationDate = (expirationDate - datetime.utcfromtimestamp(0)).total_seconds()
+
                     except ValueError:
-                        expirationDate = datetime.strptime\
-                        (i.split("=",1)[1][:-4], "%a, %d-%b-%Y %H:%M:%S")
+                        try:
+                            expirationDate = datetime.strptime\
+                            (i.split("=",1)[1][:(i.split("=",1)[1]).find('GMT')-1], "%a, %d-%b-%Y %H:%M:%S")
+                            expirationDate = (expirationDate - datetime.utcfromtimestamp(0)).total_seconds()
+                        except ValueError:
+                            expirationDate = datetime.strptime\
+                            (i.split("=",1)[1][:(i.split("=",1)[1]).find('GMT')-1], "%a, %d-%b-%y %H:%M:%S")
+                            expirationDate = (expirationDate - datetime.utcfromtimestamp(0)).total_seconds()
+                            
                 if "max-age" in i.lower():
                     expirationDate = datetime.utcnow() + timedelta(seconds=int(i.split("=")[1]))
+                    expirationDate = (expirationDate - datetime.utcfromtimestamp(0)).total_seconds()
+
                 if "domain=" in i.lower():
                     # https://stackoverflow.com/questions/12387338/what-is-a-host-only-cookie
                     if cookie.host != removeProtocolFromUrl(i.split("=", 1)[1]):
@@ -314,8 +355,7 @@ def makeHttpResponseCookieOperation(actor, headers, initial_timestamp, cookie):
 
 #%% make all tables pandas dataframes
 dbLocation = "/Users/ahnaqvi/Documents/research/\
-zubair research/OpenWPM/datadir/crawl-data.sqlite"
-# db = loadDb()
+zubair research/OpenWPM/datadir/crawl-data_mini.sqlite"
 db = sqlite3.connect(dbLocation)
 cur = db.cursor()
 javascript_table = table2frame(cur, "JAVASCRIPT")
@@ -329,11 +369,12 @@ httpResponsesTable = table2frame(cur, "HTTP_RESPONSES")
 httpResponsesTable["url"] = httpResponsesTable["url"].apply(removeProtocolFromUrl)
 #%%
 
-cookies = makeCookies(db)[:1] #Shrink down list for testing. 
-# TODO: Remove later
+cookies = makeCookies(db) #Shrink down list for testing. 
+# print(len(cookies))
 
 for cookie in cookies:
     # DETERMINE JAVASCRIPT COOKIES
+    # print(time.localtime())
     filteredResultsJavascript = javascript_table[\
                                     (javascript_table.symbol \
                                      == \
@@ -345,7 +386,7 @@ for cookie in cookies:
                                        javascript_table.document_url \
                                        == \
                                        cookie.host) ][[ \
-                                           "script_url", "value", "operation", "time_stamp" \
+                                           "script_url", "value", "operation", "time_stamp", "call_stack" \
                                            ]]
     filteredResultsJavascript = filteredResultsJavascript.drop_duplicates()
     filteredResultsJavascript = filteredResultsJavascript.sort_values('time_stamp')                                                                          
@@ -358,9 +399,7 @@ for cookie in cookies:
     filteredResultsHttpRequests = filteredResultsHttpRequests[["url_x", "headers_x", "time_stamp_x"]]
     filteredResultsHttpRequests = filteredResultsHttpRequests.drop_duplicates()
     filteredResultsHttpRequests = filteredResultsHttpRequests.sort_values('time_stamp_x')
-    if filteredResultsHttpRequests.size > 0:
-        print("httpRequests")
-        print(filteredResultsHttpRequests.size)
+    
     # -------------------------------------------
     filteredResultsHttpResponses = httpResponsesTable.merge(httpRequestsTable, how="left", on="visit_id")
     filteredResultsHttpResponses = filteredResultsHttpResponses[(filteredResultsHttpResponses.browser_id_x == cookie.browserId) & ( (filteredResultsHttpResponses.referrer == cookie.host) | (filteredResultsHttpResponses.referrer == filteredResultsHttpResponses.url_x) )]
@@ -368,21 +407,23 @@ for cookie in cookies:
     filteredResultsHttpResponses = filteredResultsHttpResponses[["url_y", "headers_x", "time_stamp_x"]]
     filteredResultsHttpResponses = filteredResultsHttpResponses.drop_duplicates()
     filteredResultsHttpResponses = filteredResultsHttpResponses.sort_values("time_stamp_x")
-    if filteredResultsHttpResponses.size > 0:
-        print("httpRepsonses")
-        print(filteredResultsHttpResponses.size)
+    
         
     # Now, populate javascript cookie operations
     for index, row in filteredResultsJavascript.iterrows():
-        makeJavascriptCookieOperation(row[0], row[1], row[2], row[3], cookie)
+        makeJavascriptCookieOperation(row[0], row[1], row[2], row[3], row[4], cookie)
     for index, row in filteredResultsHttpRequests.iterrows():
         makeHttpRequestCookieOperation(row[0], row[1], row[2], cookie)
     for index, row in filteredResultsHttpResponses.iterrows():
         makeHttpResponseCookieOperation(row[0], row[1], row[2], cookie)
     cookie.sortOperations()
+    cookie.identifyExfilOperations()
 
 
 
 endTime = time.perf_counter()
 m, s = divmod(endTime - startTime, 60)
+print("FINISHED! PICKLING NOW...")
+with open('pickled_data', 'w') as f:
+    pickle.dump(cookies,f)
 print(F"{m} minutes and {s} seconds \n")
