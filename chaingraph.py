@@ -7,10 +7,12 @@ import json
 
 ops = [] # List of list of cookie Operation objects for each cookie
 cookieNames = [] # List of cookie names
+host = []
 for i in range(len(cookies)):
     ops.append(cookies[i].operations)
     cookieNames.append(cookies[i].name)
-    # print(cookieNames)
+    host.append(cookies[i].host)
+    print(host)
 
 cookieOpsTemp = [] # List of list of operations for each cookie 
 for cookieNum in ops:
@@ -19,7 +21,7 @@ for cookieNum in ops:
         opNames.append(operation)
             
     cookieOpsTemp.append(opNames)
-# print("cookieOpsTemp: ", cookieOpsTemp)
+print("cookieOpsTemp: ", cookieOpsTemp)
 
 
 
@@ -28,9 +30,10 @@ i = 0
 for c in cookieOpsTemp:
     # print("c: ", c)
     c.insert(0, cookieNames[i])
+    c.insert(1, host[i])
     cookieOps.append(c)
     i = i + 1
-# print("cookieOps: ", cookieOps)
+print("cookieOps: ", cookieOps)
 
 
 cookieList = []
@@ -41,12 +44,13 @@ data["children"] = cookieList
 for cookie in cookieOps:
     d = {}
     d["name"] = "Cookie: " + cookie[0] # Get cookie name, which is first elem of cookie
+    d["host"] = "Host: " + cookie[1] # Get cookie host, which is second elem of cookie
     d["parent"] = "null"
     
     
     # dat = {}
     opsList = []
-    for i in reversed(range(1,len(cookie))):
+    for i in reversed(range(2,len(cookie))):
         opsList = [{"name": str(cookie[i]),
                       "parent": str(cookie[i-1]), 
                       "children": opsList
@@ -55,7 +59,7 @@ for cookie in cookieOps:
     d["children"] = opsList
     
     cookieList.append(d)
-    # print("cookie: ", cookie)
+    print("cookie: ", cookie)
 
 # print("cookieList: ", cookieList)
 # print(json.dumps(data, indent=2))
