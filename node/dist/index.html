@@ -124,53 +124,19 @@
 
       root.children.forEach(collapse);
       update(root);
-      console.log("data1:", data)
-          
-      dropDown.on("change", function() {
-        // console.log(this.value)
-        // root = data.children[this.value]
-        // console.log(data.children)
-        // Object.keys(data.children).forEach(function(key){
-        //   key = "host"
-        //   if (data.children[key] === this.value){
-        //     delete data.children[key]
-        //   }
-        // })
-        // if (data.children.host == this.value){
 
-        // }
+      dropDown.on("change", function() {
 
         dataCopy = data
-        console.log("dataCopy: ", dataCopy)
-        
-        // dataCopy.children.length = 0
-        // console.log("dataCopy empty:" , dataCopy)  
-
-        // dataCopy.children.filter((hostname) => {return hostname.host == this.value})
         
         dataFiltered = dataCopy.children.filter((hostname) => {return hostname.host == this.value})
-        // console.log(dataCopy)
-        console.log("dataFiltered: ", dataFiltered)
 
         dataCopy.children.length = 0
-        console.log("dataCopy empty:" , dataCopy)
-        // dataJson = {}
+
         for(var i in dataFiltered){
           dataCopy.children.push(dataFiltered[i])
         }
-        // dataJson = dataCopy.children.push(dataFiltered)
-        // console.log("dataJson: ", dataJson)
-
-        // data_filtered = [x for x in data['children'] if x['host'] != this.value]
-        // d3.selectAll("circle")
-        //   .data(orgData[this.value])
-        //   .attr("cx", function(d) {
-        //     return street_scale(d.street_split);
-        //   })
-        //   .attr("cy", function(d) {
-        //     return price_scale(d.value);
-        //   });
-
+        
         root = dataCopy;
         root.x0 = height / 10;
         root.y0 = 0;
