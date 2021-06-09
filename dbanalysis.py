@@ -33,9 +33,11 @@ class Cookie:
         self.host = host
         # list of operations associated with each cookie
         self.operations = []
-        self.exfilOperations = [] # stores index number of suspected exfil operations
+        self.exfilOperations = [] # stores 4-tuple in following format: (index number of first operation that added cookie, index number of suspected exfil operation, whether the exfil was friendly or adversarial, the exfil operation such as delete or read)
     def addOperation(self, newOperation): 
         self.operations.append(newOperation)
+    def addExfilOperation(self, natureOfOp, suspiciousOp): # natureOfOp is either adversarial, friendly or unclear depending on if original actor is cookie.host or someone else
+        self.exfilOperations.append((natureOfOp, suspiciousOp))
     def swap(self, op):
         for index, op in enumerate(self.operations):
             if op.cookieAccessMethod != "httpRequest":
@@ -92,11 +94,26 @@ class Cookie:
     def identifyExfilOperations(self):
         if len(self.operations) < 2:
             return
+        original_actor = removePathFromUrl(removeProtocolFromUrl(self.operations[0].actor))
         for i in range(1, len(self.operations)): # can use pairwise, less readble though
             actor = removePathFromUrl(removeProtocolFromUrl(self.operations[i].actor))
-            previous_actor = removePathFromUrl(removeProtocolFromUrl(self.operations[i-1].actor))
-            if previous_actor != actor:
-                self.exfilOperations.append(i)
+            # previous_actor = removePathFromUrl(removeProtocolFromUrl(self.operations[i-1].actor))
+            # if previous_actor != actor:
+            #     self.exfilOperations.append(i)
+            host = removePathFromUrl(removeProtocolFromUrl(self.host))
+            if actor != original_actor:
+                if original_actor == host: # They're snooping with the host's permission
+                    self.addExfilOperation("normal", self.operations[i]) # can be more complicated. What if trackers sabotage each other?
+                elif original_actor in host or host in original_actor:
+                    natureOfOp = "normal" # sharing with subdomains should be normal
+                else: # they are stealing from each other
+                    if self.operations[i].operation == "read":
+                        natureOfOp = "spy"
+                    else:
+                        natureOfOp = "sabotage"
+                        
+                    self.addExfilOperation(natureOfOp, self.operations[i])
+                    
             
             
 class Operation:
