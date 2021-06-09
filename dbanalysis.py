@@ -52,11 +52,11 @@ class Cookie:
             
             if op.cookieAccessMethod ==  "javaScript" and op.operation == "read" and index == 0:
                 self.swap(op) # The first op cant be read. Must be an error from openwpm instrumentation. Swap with first non read op.
-            if op.cookieAccessMethod == "httpRequest" and op.cookieAccessMethod == "httpRequest" and index == 0:
+            if op.cookieAccessMethod == "httpRequest" and index == 0:
                 self.swap(op) # The first op cant be read. Must be an error from openwpm instrumentation. Swap with first non read op.
 
             if op.cookieAccessMethod ==  "javaScript": # take care of this
-                if op.operation == "tbd": # with js cookies, we only need to worry about ops that "write" 
+                if op.operation == "tbd": # with js cookies, we only need to worry about ops that "write", denoted by "tbd" 
                     if index == 0:
                         op.operation = "add"
                     else: # either op is delete or modify
@@ -73,7 +73,6 @@ class Cookie:
                         op.hostOnly = self.operations[index-1].hostOnly
             if op.cookieAccessMethod == "httpRequest":
                 if index > 0:
-                    op.operation = self.operations[index-1].operation
                     op.expirationDate = self.operations[index-1].expirationDate
                     op.httpOnly = self.operations[index-1].httpOnly
                     op.sameSiteStatus = self.operations[index-1].sameSiteStatus
@@ -192,7 +191,7 @@ def table2frame(cur, tableName):
    
  
 def makeJavascriptCookieOperation(actor, value, initial_operation, initial_timestamp, call_stack, cookie):    
-    if cookie.name not in value: # this cookie was not affected
+    if cookie.name not in value.split(";"): # this cookie was not affected
         return None
     # break value into furhter cookie values, expiry and all other attibutes of operation
     cookieAccessMethod = "javaScript"
@@ -207,8 +206,10 @@ def makeJavascriptCookieOperation(actor, value, initial_operation, initial_times
         expirationDate = (datetime(2038, 1, 19, 0, 0) - datetime.utcfromtimestamp(0)).total_seconds() 
         # default expiry date is 2038, infinity essentially     
         if value:
+            print(value)
             for i in value.split(";"):
-                if cookie.name in i: # look for name=value. 
+                # print(i.split("=",1))
+                if cookie.name in i.split("=",1): # look for name=value
                     # Value can include equal sign
                     cookieValue = i.split("=",1)[1]
                 if "domain" in i.lower(): 
@@ -218,7 +219,7 @@ def makeJavascriptCookieOperation(actor, value, initial_operation, initial_times
                 if "expires" in i:
                     try:
                         expirationDate = datetime.strptime\
-                        (i.split("=",1)[1][:-4], "%a, %d %b %Y %H:%M:%S") 
+                        (i.split("=",1)[1][:(i.split("=",1)[1]).find('GMT')-1], "%a, %d %b %Y %H:%M:%S") 
                         expirationDate = (expirationDate - datetime.utcfromtimestamp(0)).total_seconds()
                         # all times are utc
 
@@ -231,8 +232,6 @@ def makeJavascriptCookieOperation(actor, value, initial_operation, initial_times
                             expirationDate = datetime.strptime\
                             (i.split("=",1)[1][:(i.split("=",1)[1]).find('GMT')-1], "%a, %d-%b-%y %H:%M:%S")
                             expirationDate = (expirationDate - datetime.utcfromtimestamp(0)).total_seconds()
-                            
-
     else:
         if initial_operation == "get":
             operation = "read"
@@ -281,6 +280,7 @@ def makeHttpRequestCookieOperation(actor, headers, initial_timestamp, cookie):
     httpOnly = "tbd"
     sameSiteStatus = "tbd"
     hostOnly = "tbd"
+    operation = "read"
     newOperation = Operation(operation, actor, timestamp, cookieAccessMethod, \
                               cookieValue, expirationDate, httpOnly, sameSiteStatus, hostOnly)
     cookie.operations.append(newOperation)
@@ -352,78 +352,83 @@ def makeHttpResponseCookieOperation(actor, headers, initial_timestamp, cookie):
                                     
     
     
-
-#%% make all tables pandas dataframes
-dbLocation = "/Users/ahnaqvi/Documents/research/\
+def main():
+    # make all tables pandas dataframes
+    dbLocation = "/Users/ahnaqvi/Documents/research/\
 zubair research/OpenWPM/datadir/crawl-data_mini.sqlite"
-db = sqlite3.connect(dbLocation)
-cur = db.cursor()
-javascript_table = table2frame(cur, "JAVASCRIPT")
-javascript_table["document_url"] = javascript_table["document_url"].apply(removeProtocolFromUrl)
-
-httpRequestsTable = table2frame(cur, "HTTP_REQUESTS")
-httpRequestsTable["url"] = httpRequestsTable["url"].apply(removeProtocolFromUrl)
-httpRequestsTable["top_level_url"] = httpRequestsTable["top_level_url"].apply(removeProtocolFromUrl)
-httpRequestsTable["referrer"] = httpRequestsTable["referrer"].apply(removeProtocolFromUrl)
-httpResponsesTable = table2frame(cur, "HTTP_RESPONSES")
-httpResponsesTable["url"] = httpResponsesTable["url"].apply(removeProtocolFromUrl)
-#%%
-
-cookies = makeCookies(db) #Shrink down list for testing. 
-# print(len(cookies))
-
-for cookie in cookies:
-    # DETERMINE JAVASCRIPT COOKIES
-    # print(time.localtime())
-    filteredResultsJavascript = javascript_table[\
-                                    (javascript_table.symbol \
-                                     == \
-                                     "window.document.cookie") \
-                                    & (javascript_table.browser_id \
-                                       == \
-                                      cookie.browserId) \
-                                    & ( \
-                                       javascript_table.document_url \
-                                       == \
-                                       cookie.host) ][[ \
-                                           "script_url", "value", "operation", "time_stamp", "call_stack" \
-                                           ]]
-    filteredResultsJavascript = filteredResultsJavascript.drop_duplicates()
-    filteredResultsJavascript = filteredResultsJavascript.sort_values('time_stamp')                                                                          
+    db = sqlite3.connect(dbLocation)
+    cur = db.cursor()
+    javascript_table = table2frame(cur, "JAVASCRIPT")
+    javascript_table["document_url"] = javascript_table["document_url"].apply(removeProtocolFromUrl)
     
+    httpRequestsTable = table2frame(cur, "HTTP_REQUESTS")
+    httpRequestsTable["url"] = httpRequestsTable["url"].apply(removeProtocolFromUrl)
+    httpRequestsTable["top_level_url"] = httpRequestsTable["top_level_url"].apply(removeProtocolFromUrl)
+    httpRequestsTable["referrer"] = httpRequestsTable["referrer"].apply(removeProtocolFromUrl)
+    httpResponsesTable = table2frame(cur, "HTTP_RESPONSES")
+    httpResponsesTable["url"] = httpResponsesTable["url"].apply(removeProtocolFromUrl)
+    #%%
     
-    # %%-------------------------------------------
-    filteredResultsHttpRequests = httpRequestsTable.merge(httpResponsesTable, how="left", on="visit_id")
-    filteredResultsHttpRequests = filteredResultsHttpRequests[(filteredResultsHttpRequests.browser_id_x == cookie.browserId) & ( (filteredResultsHttpRequests.referrer == cookie.host) | (filteredResultsHttpRequests.url_y == cookie.host) )]
-
-    filteredResultsHttpRequests = filteredResultsHttpRequests[["url_x", "headers_x", "time_stamp_x"]]
-    filteredResultsHttpRequests = filteredResultsHttpRequests.drop_duplicates()
-    filteredResultsHttpRequests = filteredResultsHttpRequests.sort_values('time_stamp_x')
+    cookies = makeCookies(db) #Shrink down list for testing. 
+    # print(len(cookies))
     
-    # -------------------------------------------
-    filteredResultsHttpResponses = httpResponsesTable.merge(httpRequestsTable, how="left", on="visit_id")
-    filteredResultsHttpResponses = filteredResultsHttpResponses[(filteredResultsHttpResponses.browser_id_x == cookie.browserId) & ( (filteredResultsHttpResponses.referrer == cookie.host) | (filteredResultsHttpResponses.referrer == filteredResultsHttpResponses.url_x) )]
-    
-    filteredResultsHttpResponses = filteredResultsHttpResponses[["url_y", "headers_x", "time_stamp_x"]]
-    filteredResultsHttpResponses = filteredResultsHttpResponses.drop_duplicates()
-    filteredResultsHttpResponses = filteredResultsHttpResponses.sort_values("time_stamp_x")
-    
+    for cookie in cookies:
+        # DETERMINE JAVASCRIPT COOKIES
+        # print(time.localtime())
+        filteredResultsJavascript = javascript_table[\
+                                        (javascript_table.symbol \
+                                         == \
+                                         "window.document.cookie") \
+                                        & (javascript_table.browser_id \
+                                           == \
+                                          cookie.browserId) \
+                                        & ( \
+                                           javascript_table.document_url \
+                                           == \
+                                           cookie.host) ][[ \
+                                               "script_url", "value", "operation", "time_stamp", "call_stack" \
+                                               ]]
+        filteredResultsJavascript = filteredResultsJavascript.drop_duplicates()
+        filteredResultsJavascript = filteredResultsJavascript.sort_values('time_stamp')                                                                          
         
-    # Now, populate javascript cookie operations
-    for index, row in filteredResultsJavascript.iterrows():
-        makeJavascriptCookieOperation(row[0], row[1], row[2], row[3], row[4], cookie)
-    for index, row in filteredResultsHttpRequests.iterrows():
-        makeHttpRequestCookieOperation(row[0], row[1], row[2], cookie)
-    for index, row in filteredResultsHttpResponses.iterrows():
-        makeHttpResponseCookieOperation(row[0], row[1], row[2], cookie)
-    cookie.sortOperations()
-    cookie.identifyExfilOperations()
+        
+        # %%-------------------------------------------
+        filteredResultsHttpRequests = httpRequestsTable.merge(httpResponsesTable, how="left", on="visit_id")
+        filteredResultsHttpRequests = filteredResultsHttpRequests[(filteredResultsHttpRequests.browser_id_x == cookie.browserId) & ( (filteredResultsHttpRequests.referrer == cookie.host) | (filteredResultsHttpRequests.url_y == cookie.host) )]
+    
+        filteredResultsHttpRequests = filteredResultsHttpRequests[["url_x", "headers_x", "time_stamp_x"]]
+        filteredResultsHttpRequests = filteredResultsHttpRequests.drop_duplicates()
+        filteredResultsHttpRequests = filteredResultsHttpRequests.sort_values('time_stamp_x')
+        
+        # -------------------------------------------
+        filteredResultsHttpResponses = httpResponsesTable.merge(httpRequestsTable, how="left", on="visit_id")
+        filteredResultsHttpResponses = filteredResultsHttpResponses[(filteredResultsHttpResponses.browser_id_x == cookie.browserId) & ( (filteredResultsHttpResponses.referrer == cookie.host) | (filteredResultsHttpResponses.referrer == filteredResultsHttpResponses.url_x) )]
+        
+        filteredResultsHttpResponses = filteredResultsHttpResponses[["url_y", "headers_x", "time_stamp_x"]]
+        filteredResultsHttpResponses = filteredResultsHttpResponses.drop_duplicates()
+        filteredResultsHttpResponses = filteredResultsHttpResponses.sort_values("time_stamp_x")
+        
+            
+        # Now, populate javascript cookie operations
+        for index, row in filteredResultsJavascript.iterrows():
+            makeJavascriptCookieOperation(row[0], row[1], row[2], row[3], row[4], cookie)
+        for index, row in filteredResultsHttpRequests.iterrows():
+            makeHttpRequestCookieOperation(row[0], row[1], row[2], cookie)
+        for index, row in filteredResultsHttpResponses.iterrows():
+            makeHttpResponseCookieOperation(row[0], row[1], row[2], cookie)
+        cookie.sortOperations()
+        cookie.identifyExfilOperations()
+    
+    
+    
+    endTime = time.perf_counter()
+    m, s = divmod(endTime - startTime, 60)
+    print("FINISHED! PICKLING NOW...")
+    with open('pickled_data', 'wb') as f:
+        pickle.dump(cookies,f)
+    print(F"{m} minutes and {s} seconds \n")
+    
 
-
-
-endTime = time.perf_counter()
-m, s = divmod(endTime - startTime, 60)
-print("FINISHED! PICKLING NOW...")
-with open('pickled_data', 'wb') as f:
-    pickle.dump(cookies,f)
-print(F"{m} minutes and {s} seconds \n")
+if __name__ == "__main__":
+    main()
+    
