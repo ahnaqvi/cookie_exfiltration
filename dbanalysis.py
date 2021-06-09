@@ -103,15 +103,16 @@ class Cookie:
             host = removePathFromUrl(removeProtocolFromUrl(self.host))
             if actor != original_actor:
                 if original_actor == host: # They're snooping with the host's permission
+                    natureOfOp = "normal"
                     self.addExfilOperation("normal", self.operations[i]) # can be more complicated. What if trackers sabotage each other?
-                elif original_actor in host or host in original_actor:
-                    natureOfOp = "normal" # sharing with subdomains should be normal
+                elif original_actor in actor or actor in original_actor:
+                    natureOfOp = "normal" # sharing with subdomains or other company trackers should be normal
+                    self.addExfilOperation(natureOfOp, self.operations[i])
                 else: # they are stealing from each other
                     if self.operations[i].operation == "read":
                         natureOfOp = "spy"
                     else:
                         natureOfOp = "sabotage"
-                        
                     self.addExfilOperation(natureOfOp, self.operations[i])
                     
             
