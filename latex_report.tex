@@ -1,0 +1,360 @@
+
+
+\usepackage{hyperref}
+%%
+%% This is file `sample-sigplan.tex',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% samples.dtx  (with options: `sigplan')
+%% 
+%% IMPORTANT NOTICE:
+%% 
+%% For the copyright see the source file.
+%% 
+%% Any modified versions of this file must be renamed
+%% with new filenames distinct from sample-sigplan.tex.
+%% 
+%% For distribution of the original source see the terms
+%% for copying and modification in the file samples.dtx.
+%% 
+%% This generated file may be distributed as long as the
+%% original source files, as listed above, are part of the
+%% same distribution. (The sources need not necessarily be
+%% in the same archive or directory.)
+%%
+%% The first command in your LaTeX source must be the \documentclass command.
+\documentclass[sigplan,screen]{acmart}
+%% NOTE that a single column version is required for 
+%% submission and peer review. This can be done by changing
+%% the \doucmentclass[...]{acmart} in this template to 
+%% \documentclass[manuscript,screen,review]{acmart}
+%% 
+%% To ensure 100% compatibility, please check the white list of
+%% approved LaTeX packages to be used with the Master Article Template at
+%% https://www.acm.org/publications/taps/whitelist-of-latex-packages 
+%% before creating your document. The white list page provides 
+%% information on how to submit additional LaTeX packages for 
+%% review and adoption.
+%% Fonts used in the template cannot be substituted; margin 
+%% adjustments are not allowed.
+%%
+%% \BibTeX command to typeset BibTeX logo in the docs
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
+
+%% Rights management information.  This information is sent to you
+%% when you complete the rights form.  These commands have SAMPLE
+%% values in them; it is your responsibility as an author to replace
+%% the commands and values with those provided to you when you
+%% complete the rights form.
+
+%
+
+%%
+%% end of the preamble, start of the body of the document source.
+\begin{document}
+
+%%
+%% The "title" command has an optional parameter,
+%% allowing the author to define a "short title" to be used in page headers.
+\title{Cookie Exfiltration: Hostile or Friendly?}
+
+
+\author{Abdulhai Naqvi}
+\affiliation{%
+  \institution{UC Davis}
+  \country{}}
+
+\author{Alicia Siu}
+\affiliation{%
+  \institution{The University of California, Davis}}
+\email{aclsiu@ucdavis.edu}
+
+% \author{Zubair Shafiq}
+% \affiliation{%
+%   \institution{The University of California, Davis}}
+% \email{zshafiq@ucdavis.edu}
+
+
+\begin{abstract}
+Recently,third party scripts have become increasingly common in tracking user activity across the web. Previous work in the field has explored how common this is and how trackers collaborate to aggregate infomation. 
+
+We take a different approach to see if trackers \textit{sabotage} each other. In this exploratory study, we have found preliminary evidence to indicate that there is some active sabotage between different third party trackers. 
+
+
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+Recently, major browsers such as Firefox have begun to block third party cookies for privacy protection\cite{firefox}. To get around this, third-party domains can provide JavaScript scripts, or trackers, that can be embedded in an HTML <script> tag to aggregate user data across multiple websites and site visits.
+
+This allows third party domains to be passed off as first party domains.  While this technique can be used to synchronize information effectively across multiple subdomains for non-tracking purposes, it has emerged as a popular tool to track users in a stateful manner\cite{chen2021cookie}\cite{englehardt2016census} as it bypasses the same origin policy (SOP) in web browsers.
+
+We investigate in this paper how often third party domains are engaging in cookie sharing (collaborative) and cookie exfiltration (combative) across Alexa Top 10 Websites \cite{alexa}. We utilize the OpenWPM framework maintained by the Mozilla Foundation \cite{englehardt2016census} to gather data and D3.js\cite{d3js} and GraphViz\cite{graphviz} libraries to create interactive visualizations. 
+
+\section{Background}
+
+Recently, consumers have started becoming more concerned about their online privacy. This has resulted in changes in cookie behavior in major browsers with regards to what information third party cookies can access\cite{firefox}. A third party domain here has been defined as any website that is not directly visited by a user. In our case, we consider different subdomains under the same domain to be third parties to each other.
+
+This has sent web trackers into two distinct but synergistic directions: stateful tracking, where information is stored with the client  and stateless tracking, where information is stored with the server\cite{redhat}. Our work focuses on stateful trackers.
+
+Previously deployed measures to restrict cookie sharing have focused on voluntary usage by tracking websites. These have included the "SameSite" and "HttpOnly"\cite{mdn} attributes. While useful for overall security, these privacy changes can be bypassed entirely.One approach has been browser and machine fingerprinting, a stateless tracking method\cite{englehardt2016census} . 
+
+Another common approach has been to use embedded scripts that can be placed within HTML <script> tags on a webpage\cite{chen2021cookie}. This allows trackers to bypass third party domain limitations entirely through JavaScript.
+
+
+\section{Related Work}
+
+Recently, Chen et al. have shone light on this phenomenon\cite{chen2021cookie}. They measured the prevalence of web tracking based on first-party cookies set by third-party scripts or JavaScript code, labelling them as "external cookies", which are used to circumvent browser policies that block third-party cookies. 
+
+Their analysis  shows that external cookies are widely used and a large number of websites utilize these external cookies allowing third parties to exchange tracking IDs allowing data across time and space. 
+
+In earlier work, Roesner et al. investigated different kinds of third-party trackers using detection and classification of both stateful and stateless tracking techniques\cite{roesner2012detecting}. They used multiple information vectors, including page fetching, first-party domains and same origin policy, as well as tracking information like using HTTP Referrer headers to communicate information about a visited site to the trackers. 
+
+It was found that over 20\% of a user's browsing information could be ascertained using these techniques at the time. 
+
+Another work, \cite{ren2021analysis} examines cookie exfiltration and identifies instances where first-party cookies are sent to third-parties, but with a focus on CNAME cloaking. CNAME cloaking is a method used to disguise a third-party domain as part of a first-party domain for tracking. The authors analyze and conclude a number of websites perform CNAME redirections, causing sensitive cookies to be leaked to third-party domains. This can be problematic from a privacy standpoint, as personal information and authentication data can be exposed. 
+
+With these works in mind, our work aims to examine possible cookie exfiltration and examine the exact usage of first-party cookies by embedded scripts set by third-party cookies. In addition, we have developed an interactive visual applications allowing users to better understand information travel and relevant actors.
+
+\section{Methodology}
+
+
+\subsection{Gathering Data}
+
+We used the open source OpenWPM framework \cite{englehardt2016census}, an adapted version of Firefox, for instrumentation. We visited the Alexa Top 10 websites \cite{alexa}
+
+OpenWPM, by default, collects details on cookies that Javascript interacts with. Since "HttpOnly" cookies cannot be accessed using Javascript and can be excluded, we used this data  to populate an initial "Cookies" class.
+Below is the Python representation of this data structure.
+
+\subsubsection{The Cookie Class}
+
+\begin{verbatim}
+class Cookie: 
+    browserId # The specific OpenWPM 
+              # browser id used to 
+              # crawl this website
+    cookie_name # name of the cookie
+    cookie_host # The website the cookie is set on
+    
+    # list of sorted operations associated with 
+    # each cookie
+    list Operations []
+    
+    # list of operations that "steal" or 
+    # "exfiltrate" cookies
+    list exfiltrationOperations []
+    
+\end{verbatim}
+
+We chose three invariants to uniquely identify a cookie. The first is the browser ID of the OpenWPM instance that records the particular cookie. 
+
+The second is the name of the cookie. The third is the host that stores the cookie.
+
+In addition, the data structure contains a list of
+Operations that have been performed on the cookie. Among these, we earmark suspicious operations in a special list, exfiltrationOperations.
+
+\newpage
+
+\subsubsection{The Operations Class}
+
+Each Cookie contains a list of Operations. This data structure is sketched out as follows.
+
+
+\begin{verbatim}
+    class Operation:
+        actor # the website or "third party"
+              # conducting the operation
+        operation # the operation conducted.
+                  # Options  are "read", 
+                  # "add", "modify" 
+                  # and "delete"
+        timestamp # A time stamp from the 
+                  # instrumentation.
+                  # Used to sort the array of 
+                  # Operations
+        cookie_value # The value of the cookie 
+                     # at 
+                     # the end of the Operation
+        access_method # Whether the operation
+                      # was done thru Javascript
+                      # or HTTP
+        expiration # The expiry date of the 
+                   # Cookie at the end of the
+                   # Operation
+        
+\end{verbatim}
+
+\subsection{To Catch a Predator}
+When first parties collaborate with a tracker or third party, it is a collaborative operation. 
+
+On the other hand, when a third party changes, reads or deletes a cookie without the consent of the party that sent it, the operation is hostile or adversarial in nature. We call this surreptitious behavior \textbf{cookie exfiltration}.
+
+To discover cookie exfiltration, we used a simple criteria. We check whether the original setter for the cookie is the actual first party domain. If it is, then we mark the exfiltration operation as "normal" since it is being carried out with the permission of the first party domain. 
+
+If the cookie is not set by the first party domain, then it's original setter is a tracker. Now, things get more interesting. If we see other trackers change this cookie's value, how do we determine whether this is adversarial in nature?
+
+Again, we use a simple methodology. If we find either of the two parties being a substring of each other, then it is considered a "normal" exfiltration. For example, "example.com" reading a cookie from "sub.example.com" will be considered "normal" since they are likely operated by the same real world entity.
+
+Finally, if we see trackers changing or reading cookie data without being the original setters or being related to them, we  mark this as suspicious.
+
+If the operation is "read", we mark the operation as "spying". If it's a "modify" or "delete", it becomes a "sabotage" operation.
+
+While the classification is very naive, it gives us a good place to start. One can further refine the various categories. An interesting one would be to see if trackers sabotage data set by each other when the original owner is the actual first party. We leave these questions as an invitation for further research.
+
+
+\subsection{Cookie Nibbler}
+
+To better visualize the data collected on cookies and the defined operations performed on each cookie, we created an interactive visualization called the "Cookie Nibbler."
+
+The idea of our visualization is to envision a chain of operations acted upon each cookie by every actor and ordered by timestamp. Upon researching software and tools to generate graph visualizations, our initial approach utilized Graphviz\cite{graphviz}, which is an open source graph visualization software. 
+
+With the previously processed data, we can use the cookie name and the list of operations to generate a graph of linking nodes, where each cookie expands into a node of operations in that cookie.
+
+To conveniently view this graph, we utilized Dash\cite{Dash}, which is an open-source Python library used for creating reactive, web-based applications. This Dash app made a simple to view visualization that can be seen in a browser. To further enhance the visualization, we attempted to add interactivity with a library called dash-interactive-graphviz\cite{dash-int}, which renders the graphviz in a dash component and provides the ability to interact with the graphviz such as zooming, panning, selecting nodes, and adding animations.
+
+However, due to time constraints, the visualization was not developed further. This initial application can be used as the backbone of a more powerful graphics application as further work.
+
+We used the JavaScript library D3.js\cite{d3js}, which uses HTML, CSS, and SVG. This is used in combination with NodeJS\cite{nodejs}, a back-end JavaScript environment for creating web applications. 
+
+The application is written in HTML and JavaScript, and runs in a NodeJS environment. 
+
+In order to implement the graph visualization with D3.js, further data processing needs to be done as it takes in JSON (JavaScript Object Notation) file. 
+For each cookie, we display a single node. Once a user clicks on each node, the another node is spawned, forming a link. Each node shows an operation performed on the cookie. Within each node, the details of the operation such as the actor and the actual operation, are clearly displayed. 
+
+As shown in these example\cite{bostock_tree}\cite{alien_tree}\cite{box_tree}, built a visualization resembling a collapsible tree with multiple root nodes. By manipulating the SVG, interactivity can be added to the visualization, where each node is animated to reveal the next node of the node that is selected. The visualization also includes zooming and dragging abilities so the user can choose to see less or more information. A flourish that was left out due to time constraints was changing the node color based on cookie exfiltration.
+
+\begin{figure}[htp]
+    \centering
+    \includegraphics[width=8.5cm]{CookieViz1}
+    \includegraphics[width=8.5cm]{CookieViz2}
+    \caption{Chain of cookie operations. This illustration displays two cookies with a subset of their corresponding operations.}
+    \label{fig:Cookie visualization}
+\end{figure}
+
+
+\section{Results}
+The websites we visited are:
+\begin{enumerate}
+\item google.com
+\item youtube.com
+\item tmall.com
+\item baidu.com
+\item qq.com
+\item sohu.com
+\item facebook.com
+\item taobao.com
+\item google.com
+\item amazon.com
+\end{enumerate}
+
+These visits generated 158 cookies from 56 different domains. Of these cookies, 26 had suspicious cookie exfiltration operations.
+
+Of the cookie that were sabotage of exfiltrations, \textbf{amazon-adsystem.com} had some 245 exfiltration operations carried out on one  of it's cookies.
+
+Upon closer inspection, most of these "sabotages" were actually carried out by other Amazon services and subdomains that were not caught by our simple filters. However, some exfiltrations that were carried out by other websites such as \textbf{doubleclick.com} and \textbf{adservice.google.com} are hard to explain as non-suspicious without further information of real world relationship information between the two companies.
+
+This example demonstrates the need for more robust filter in any future work carried out to weed out false positives.
+
+With the limitations previously discussed in mind, we found that of the 26 cookies that had successful exfiltration attempts, 17 had a "spy" or "sabotage" operation. Of these, 7 did not have any "spy" operations, only "sabotage" operations.
+
+\subsection*{Properties other than cookie value}
+
+So far, we have only looked at  the exfiltration of the cookie value. In addition, a cookie has other parameters associated with it as well, such as the SameSite attribute, Expiration date and the HostOnly attribute.
+
+While the cookie value being exfiltrated is the most obvious change, chaning these other parameters can also be a cause of concern.
+
+For example, changing the Expiration date to a date in the past deletes a cookie. Similarly, the SameSite attribute can prevent against Cross Site Resource Forgery (CSRF) attacks \cite{csrf}. 
+
+Changing or removing these attributes to a less secure setting can lower the security for these cookies. It also open the door to  malicious actors being able to read these cookies for nefarious purposes, like CSRF \cite{csrf}. 
+
+Following is an analysis of these secondary cookie properties that might have been exfiltrated or tampered.
+
+\textbf{SameSite Attribute}
+
+The SameSite attribute prevents cookies from being exfiltrated by embedded external resources \cite{sameSite}. 
+
+In the ten websites, we analyzed earlier, we found 158 cookies from 56 different domains. None of them provided any proof of tampering with the SameSite attribute.
+
+\textbf{Expiration Date}
+
+We found 19 cookies where the expiration date was being changed by third parties who had not originally set the cookie. Some of them were sister domains and subdomains. 
+However, some of these domains such as \textbf{sohu.com} had other distinct domains, such as \textbf{baidu.com} changing the expirationDate. 
+
+\textbf{HostOnly Attribute}
+
+We found 4 cookies that had the HostOnly attribure modified. Again, \textbf{baidu.com} was seen modifying cookies from \textbf{sohu.com}. It is possible these two companies have a business partnership. Alternatively, they could be trying to actively gain information about \textbf{sohu.com}. This merits further research to see how widespread this practice is.
+
+
+\section{Discussion}
+We only looked at the top 10 websites from Alexa. This was more of an exploratory study than a survey. This was mainly due to time constraints. 
+
+Using relatively unoptimized code on our personal machines, we found the running times for a larger set of websites impractical.
+
+Even though our sample size was small, we still found evidence of cookie exfiltration where cookies were being modified or read without the permission of the original domain that set the cookie.
+
+We need more research to confirm whether this is "accidental" or actually malicious. 
+
+It is also interesting that some websites engage in changing the HostOnly attribute of cookies they hadn't set. This opens the cookie to be read by domains that didn't set it explicitly. It is hard to imagine this is not malicious if done by two unrelated trackers.
+
+Last but not least, a problem that we have faced is separating truly separate trackers and related domains. While strictly speaking, all third party domains are treated as the same by the browser, one can argue that \textbf{abc.com} and \textbf{xyz.com} are not engaging in malicious behavior if they are owned by the same parent company and collaborate with each other. 
+
+We would need some more information about these trackers and their structure to get a more accurate picture of how much of this behavior is actually malicious.
+
+Additionally, further research is needed with more websites crawled to see how widespread these practices are in the wild.
+
+\section{Limitations}
+A major blind side in our work is the actual relationship between trackers. What we might consider "sabotage" might be collaboration based on a business deal. It is also possible that the two trackers "sabotaging" each other are sister companies held by the same parent company.
+
+Researching these relationships and creating rules based around them would give us a better idea about where actual cookie sabotage or spying is being carried out.
+
+We also haven't made any concessions for "accidental" spying or sabotage. 
+It is very possible that when trackers use "document.cookie" to read cookies, they do not actually use the other information. 
+
+However, it is nonetheless a security risk to other trackers who might want the integrity of their cookies to maintain integrity.
+
+\section{Future Work}
+To further the progress made in this work, the cookie visualization can be enhanced by including more features and creating a more appealing and engaging user interface. For example, assigning different colors to each type of node can help to better differentiate the cookie names, and operation types. After identifying suspicious behavior based on the operations performed on the cookies, as well as identifying cookie exfiltration, this can be indicated on the visualization with labels that note which websites contain potentially malicious cookie behavior. 
+
+Our criterion for labeling cookie exfiltration operations as "normal" or "spy" or "sabotage" are very simple. While they give us a good baseline to draw on, further refinement is needed to get a better idea about how cookie exfiltration is actually being used in the wild.
+
+One avenue of approach is to check whether multiple actors are sabotaging a cookie's value. 
+
+Another interesting method would be to check whether any of the cookies being set or read are hashed copies of existing cookies set by other domains.
+
+It would also be interesting to compare how different domains handle integrity of their cookies. Hashing or encrypting cookie data may provide an integrity check, alerting the cookie reader to a data violation.
+
+In addition to enhancing the cookie visualization to convey more information, a helpful tool that can be created is to utilize machine learning techniques to identify and classify websites in which third party scripts access or change first party scripts. The data gathered and processed in our work can be used as a training set for the machine learning algorithm. Possible classification machine learning algorithms that can be taken into consideration are logistic regression and naive bayes classifiers. Performing experiments on different algorithms will determine which machine learning algorithms result in the best performance in a short amount of time. 
+
+\section{Conclusion}
+
+We have found evidence of cookie exfiltration and tampering, sometimes collaborative, and sometimes not, on ten of the most popular websites from Alexa. It is an promising area of research. Other works, for example Chen \cite{chen2021cookie}, look at third party trackers that are embedded to get around the Same origin policy on web browsers. 
+
+However, more work needs to be done to see how trackers are interacting with each other beyong strict collaboration. We have preliminary evidence that there  is some sabotage and snooping of other third party cookies.
+
+\section{Contributions}
+
+Alicia Siu's main contribution to this project is visualizing the cookies and creating the visualization for the cookie operation. She researched, tested and implemented graph visualizations using different software tools and libraries to create an interactive visualization that the team envisioned. She helped with initial analysis of the crawled data in the database. She also contributed to the project proposal and project powerpoint presentations, and contributed largely in writing the mid-point progress report including research on related work. In this paper, she wrote sections on related work, measurement description on the cookie visualization, future work, and bibliography.
+
+Abdulhai contributed to the data structures and overall architecture.
+
+The associated code can be found here: 
+\url{https://github.com/ahnaqvi/cookie_exfiltration/}
+
+\newpage
+
+%%
+%% The next two lines define the bibliography style to be used, and
+%% the bibliography file.
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{Bibliography}
+
+\end{document}
+\endinput
+%%
+%% End of file `sample-sigplan.tex'.
